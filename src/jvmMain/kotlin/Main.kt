@@ -6,6 +6,7 @@ import androidx.compose.material.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,6 +56,23 @@ fun MainScreen(client: HttpClient) {
             TabContentFactory.TabItem("Request" + persistentTab.id, persistentTab,
                 screen = { tabContent(client, persistentTab) })
         }.toMutableStateList())
+    }
+
+
+    fun addTab(){
+        val newTab = updateTheDatabase(
+            PersistentTab(
+                0, "", "www.example.com", "GET", "", "", listOf()
+            )
+        )
+        println("Created new request ${newTab}")
+        val content =
+            TabContentFactory.TabItem("Request" + newTab?.id.toString(), newTab!!,
+                screen = {
+                    tabContent(client, newTab)
+                })
+        tabs.add(content)
+        selectedTab = tabs.indexOf(content)
     }
 
 
@@ -120,21 +138,7 @@ fun MainScreen(client: HttpClient) {
                             IconButton(onClick = {
                                 tabs.remove(tab)
                                 when{
-                                    selectedTab==0 -> {
-                                        val newTab = updateTheDatabase(
-                                            PersistentTab(
-                                                0, "", "www.example.com", "GET", "", "", listOf()
-                                            )
-                                        )
-                                        println("Created new request ${newTab}")
-                                        val content =
-                                            TabContentFactory.TabItem("Request" + newTab?.id.toString(), newTab!!,
-                                                screen = {
-                                                    tabContent(client, newTab)
-                                                })
-                                        tabs.add(content)
-                                        selectedTab = tabs.indexOf(content)
-                                    }
+                                    selectedTab==0 ->  addTab()
                                     selectedTab>=tabs.size -> selectedTab--
                                 }
                                 Persistence.delete(tab.persistentTab)
@@ -146,19 +150,7 @@ fun MainScreen(client: HttpClient) {
                     }
                     Button(
                         onClick = {
-                            val newTab = updateTheDatabase(
-                                PersistentTab(
-                                    0, "", "www.example.com", "GET", "", "", listOf()
-                                )
-                            )
-                            println("Created new request ${newTab}")
-                            val content = TabContentFactory.TabItem("Request" + newTab?.id.toString(), newTab!!,
-                                screen = {
-                                    tabContent(client, newTab)
-                                })
-                            tabs.add(content)
-                            selectedTab = tabs.indexOf(content)
-
+                            addTab()
                         },
                     ) {
                         Text("+")
@@ -371,10 +363,8 @@ fun environment_section(){
 }
 
 
-@Composable
-fun addTab(){
 
-}
+
 
 
 fun main() = application {
