@@ -111,17 +111,38 @@ fun MainScreen(client: HttpClient) {
                 ) {
 
                     tabs.forEachIndexed { index, tab ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            text = { Text(tab.title) }
-                        )
-                        IconButton(onClick = {
-                            tabs.remove(tab)
-                            Persistence.delete(tab.persistentTab)
-                        }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                        Box(modifier=Modifier.width(20.dp)){
+                            Tab(
+                                selected = selectedTab == index,
+                                onClick = { selectedTab = index },
+                                text = { Text(tab.title) }
+                            )
+                            IconButton(onClick = {
+                                tabs.remove(tab)
+                                when{
+                                    selectedTab==0 -> {
+                                        val newTab = updateTheDatabase(
+                                            PersistentTab(
+                                                0, "", "www.example.com", "GET", "", "", listOf()
+                                            )
+                                        )
+                                        println("Created new request ${newTab}")
+                                        val content =
+                                            TabContentFactory.TabItem("Request" + newTab?.id.toString(), newTab!!,
+                                                screen = {
+                                                    tabContent(client, newTab)
+                                                })
+                                        tabs.add(content)
+                                        selectedTab = tabs.indexOf(content)
+                                    }
+                                    selectedTab>=tabs.size -> selectedTab--
+                                }
+                                Persistence.delete(tab.persistentTab)
+                            },modifier = Modifier.align(Alignment.CenterEnd)) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete")
+                            }
                         }
+
                     }
                     Button(
                         onClick = {
@@ -347,6 +368,12 @@ fun environment_section(){
 
 
     }
+}
+
+
+@Composable
+fun addTab(){
+
 }
 
 
