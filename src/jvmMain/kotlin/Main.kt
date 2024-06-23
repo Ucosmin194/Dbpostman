@@ -1,6 +1,8 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
+import androidx.compose.material.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.*
@@ -8,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.rest.interpreter.external.rest.RestClient
@@ -21,6 +24,7 @@ import io.ktor.client.*
 import io.ktor.client.engine.apache.*
 import io.ktor.client.features.json.*
 import kotlinx.coroutines.runBlocking
+import androidx.compose.ui.window.rememberWindowState
 
 @Preview
 @Composable
@@ -40,6 +44,8 @@ fun App() {
 @Composable
 fun MainScreen(client: HttpClient) {
     var selectedTab by remember { mutableStateOf(0) }
+    var isCollectionExpanded by remember { mutableStateOf(false) }
+    var isEnvironmentExpanded by remember { mutableStateOf(false) }
 
     Persistence.createDatabase()
 
@@ -51,61 +57,173 @@ fun MainScreen(client: HttpClient) {
         }.toMutableStateList())
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("DBPostman") },
-                backgroundColor = Color.Blue,
-                contentColor = Color.White
-            )
 
-            TabRow(
-                selectedTabIndex = selectedTab,
-                backgroundColor = Color.Blue,
-                contentColor = Color.Green,
-                modifier = Modifier.width(644.dp)
+    Surface {
+        Row(Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .width(180.dp)
+                    .fillMaxHeight()
+                    .background(Color.White)
+
             ) {
-                tabs.forEachIndexed { index, tab ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = { Text(tab.title) }
-                    )
-                    IconButton(onClick = {
-                        tabs.remove(tab)
-                        Persistence.delete(tab.persistentTab)
-                    }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete")
+                Column(modifier = Modifier.padding(22.dp)) {
+                    Button(onClick = {isCollectionExpanded=!isCollectionExpanded; isEnvironmentExpanded=false},
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White))
+                    {Text("Collections", fontSize = 12.sp)}
+
+                    Spacer(modifier = Modifier.height(100.dp))
+                    Button(onClick = {isEnvironmentExpanded=!isEnvironmentExpanded; isCollectionExpanded=false},
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White))
+                    {Text("Environments", fontSize = 12.sp)}
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(1.dp)
+                        .align(Alignment.CenterEnd)
+                        .background(Color.Black)
+                )
+
+            }
+            if(isCollectionExpanded)
+                collection_section()
+            if(isEnvironmentExpanded)
+                environment_section()
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(1f)
+                    .background(Color.White)
+            ) {
+
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    contentColor = Color.Green,
+                    backgroundColor = Color.Blue,
+                    indicator = { tabPositions ->
+                        TabRowDefaults.Indicator(
+                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                            color = Color.Green
+                        )
+                    }
+                ) {
+
+                    tabs.forEachIndexed { index, tab ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = { Text(tab.title) }
+                        )
+                        IconButton(onClick = {
+                            tabs.remove(tab)
+                            Persistence.delete(tab.persistentTab)
+                        }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                        }
+                    }
+                    Button(
+                        onClick = {
+                            val newTab = updateTheDatabase(
+                                PersistentTab(
+                                    0, "", "www.example.com", "GET", "", "", listOf()
+                                )
+                            )
+                            println("Created new request ${newTab}")
+                            val content = TabContentFactory.TabItem("Request" + newTab?.id.toString(), newTab!!,
+                                screen = {
+                                    tabContent(client, newTab)
+                                })
+                            tabs.add(content)
+                            selectedTab = tabs.indexOf(content)
+
+                        },
+                    ) {
+                        Text("+")
                     }
                 }
+                TabContentFactory.TabContent(tabs[selectedTab].screen)
+                Spacer(modifier = Modifier.weight(1f))
 
-                Button(
-                    onClick = {
-                        val newTab = updateTheDatabase(
-                            PersistentTab(
-                                0, "", "www.example.com", "GET", "", "", listOf()
-                            )
-                        )
-                        println("Created new request ${newTab}")
-                        val content = TabContentFactory.TabItem("Request" + newTab?.id.toString(), newTab!!,
-                            screen = {
-                                tabContent(client, newTab)
-                            })
-                        tabs.add(content)
-                        selectedTab = tabs.indexOf(content)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .background(Color.Blue)
+                ){
+                    Button(onClick = {
 
                     },
-                ) {
-                    Text("+")
+                        modifier = Modifier.align(Alignment.Center),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.Green)
+
+                    ){
+                        Text("Send")
+                    }
+
+
                 }
-            }
-        },
-        content = {
-            Column(modifier = Modifier.fillMaxSize()) {
-                TabContentFactory.TabContent(tabs[selectedTab].screen)
+
             }
         }
-    )
+    }
+
+//    Scaffold(
+//        topBar = {
+//            TopAppBar(
+//                title = { Text("DBPostman") },
+//                backgroundColor = Color.Blue,
+//                contentColor = Color.White
+//            )
+//
+//            TabRow(
+//                selectedTabIndex = selectedTab,
+//                backgroundColor = Color.Blue,
+//                contentColor = Color.Green,
+//                modifier = Modifier.width(644.dp)
+//            ) {
+//                tabs.forEachIndexed { index, tab ->
+//                    Tab(
+//                        selected = selectedTab == index,
+//                        onClick = { selectedTab = index },
+//                        text = { Text(tab.title) }
+//                    )
+//                    IconButton(onClick = {
+//                        tabs.remove(tab)
+//                        Persistence.delete(tab.persistentTab)
+//                    }) {
+//                        Icon(Icons.Default.Delete, contentDescription = "Delete")
+//                    }
+//                }
+//
+//                Button(
+//                    onClick = {
+//                        val newTab = updateTheDatabase(
+//                            PersistentTab(
+//                                0, "", "www.example.com", "GET", "", "", listOf()
+//                            )
+//                        )
+//                        println("Created new request ${newTab}")
+//                        val content = TabContentFactory.TabItem("Request" + newTab?.id.toString(), newTab!!,
+//                            screen = {
+//                                tabContent(client, newTab)
+//                            })
+//                        tabs.add(content)
+//                        selectedTab = tabs.indexOf(content)
+//
+//                    },
+//                ) {
+//                    Text("+")
+//                }
+//            }
+//        },
+//        content = {
+//            Column(modifier = Modifier.fillMaxSize()) {
+//                TabContentFactory.TabContent(tabs[selectedTab].screen)
+//            }
+//        }
+//    )
 }
 
 @Composable
@@ -195,9 +313,50 @@ fun responseComponent(tab: MutableState<PersistentTab>) {
 }
 
 
+@Composable
+fun collection_section(){
+    Column(
+        modifier = Modifier
+            .width(200.dp)
+            .fillMaxHeight()
+            .background(Color.LightGray)
+            .padding(16.dp)
+    ) {
+
+        Text("Collection Item 1")
+        Text("Collection Item 2")
+        Text("Collection Item 3")
+
+
+    }
+}
+
+@Composable
+fun environment_section(){
+    Column(
+        modifier = Modifier
+            .width(200.dp)
+            .fillMaxHeight()
+            .background(Color.LightGray)
+            .padding(16.dp)
+    ) {
+
+        Text("Environment Item 1")
+        Text("Environment Item 2")
+        Text("Environment Item 3")
+
+
+    }
+}
+
+
 fun main() = application {
     Window(
         title = "dbPostman",
+        state = rememberWindowState(
+            width = 1080.dp,
+            height = 700.dp
+        ),
         onCloseRequest = ::exitApplication
     ) {
         App()
