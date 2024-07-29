@@ -6,7 +6,7 @@ import androidx.compose.material.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.SnapshotStateList
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -91,6 +91,7 @@ fun MainScreen(client: HttpClient) {
                     {Text("Collections", fontSize = 12.sp)}
 
                     Spacer(modifier = Modifier.height(100.dp))
+
                     Button(onClick = {isEnvironmentExpanded=!isEnvironmentExpanded; isCollectionExpanded=false},
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color.White))
                     {Text("Environments", fontSize = 12.sp)}
@@ -103,7 +104,6 @@ fun MainScreen(client: HttpClient) {
                         .align(Alignment.CenterEnd)
                         .background(Color.Black)
                 )
-
             }
             if(isCollectionExpanded)
                 collection_section()
@@ -115,10 +115,9 @@ fun MainScreen(client: HttpClient) {
                     .weight(1f)
                     .background(Color.White)
             ) {
-
                 TabRow(
                     selectedTabIndex = selectedTab,
-                    contentColor = Color.Green,
+                    contentColor = Color.LightGray,
                     backgroundColor = Color.Blue,
                     indicator = { tabPositions ->
                         TabRowDefaults.Indicator(
@@ -174,10 +173,7 @@ fun MainScreen(client: HttpClient) {
                     ){
                         Text("Send")
                     }
-
-
                 }
-
             }
         }
     }
